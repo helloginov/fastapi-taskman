@@ -12,11 +12,11 @@ from datetime import timedelta
 
 router = APIRouter(prefix="/auth", tags=["Безопасность"])
 
-@router.post("/signup", status_code=status.HTTP_201_CREATED,
-             response_model=int,
-             summary = 'Добавить пользователя')
-def create_user(user: schema_task.User,
-                session: Session = Depends(get_session)):
+@router.post("/signup", status_code=status.HTTP_201_CREATED, response_model=int, summary = 'Добавить пользователя')
+def create_user(
+    user: schema_task.User,
+    session: Session = Depends(get_session)
+):
     new_user = schema_task.User(
         name=user.name,
         email=user.email,
@@ -35,12 +35,16 @@ def create_user(user: schema_task.User,
         )
 
 
-@router.post("/login", status_code=status.HTTP_200_OK,
-             summary = 'Войти в систему')
-def user_login(login_attempt_data: OAuth2PasswordRequestForm = Depends(),
-               db_session: Session = Depends(get_session)):
-    statement = (select(schema_task.User)
-                 .where(schema_task.User.email == login_attempt_data.username))
+@router.post("/login", status_code=status.HTTP_200_OK, summary = 'Войти в систему')
+def user_login(
+    login_attempt_data: OAuth2PasswordRequestForm = Depends(),
+    db_session: Session = Depends(get_session)
+):
+    statement = (
+        select(schema_task.User).where(
+            schema_task.User.email == login_attempt_data.username
+        )
+        )
     existing_user = db_session.exec(statement).first()
 
     if not existing_user:
@@ -50,8 +54,9 @@ def user_login(login_attempt_data: OAuth2PasswordRequestForm = Depends(),
         )
 
     if auth_handler.verify_password(
-            login_attempt_data.password,
-            existing_user.password):
+        login_attempt_data.password,
+        existing_user.password
+    ):
         access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
         access_token = auth_handler.create_access_token(
             data={"sub": login_attempt_data.username},

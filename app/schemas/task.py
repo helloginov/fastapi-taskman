@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from pydantic import (BaseModel, Field, BeforeValidator, EmailStr)
 from pydantic_settings import SettingsConfigDict
 from typing import Optional, Annotated, TypeAlias
@@ -74,3 +74,12 @@ class Task(SQLModel, TaskRead, table=True):
     due_date: date
     assignee: int = SQLField(foreign_key="user.user_id")
     project: int = SQLField(default=None, nullable=True, foreign_key="project.project_id")
+
+
+class ProductivityLog(SQLModel, table=True):
+    log_id: int = SQLField(default=None, primary_key=True)
+    user_id: int = SQLField(foreign_key="user.user_id")
+    log_date: date = SQLField(default_factory=date.today)
+    tasks_completed: int = SQLField(nullable=False)
+    focus_score: float = SQLField(default=0.0)  # "AI"-оценка эффективности
+    last_activity: datetime = SQLField(default_factory=datetime.now)

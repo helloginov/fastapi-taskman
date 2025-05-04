@@ -12,7 +12,10 @@ ENV PYTHONUNBUFFERED 1
 
 # Установка библиотек
 COPY requirements.txt .
-RUN pip install -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Копирование файлов проекта
 COPY . .
+
+# Разрешаем дебаггинг
+RUN pip install debugpy
