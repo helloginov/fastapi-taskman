@@ -14,13 +14,24 @@ def _empty_str_or_none(value: str | None) -> None:
 
 EmptyStrOrNone: TypeAlias = Annotated[None, BeforeValidator(_empty_str_or_none)]
 
+class ProjectCreate(BaseModel):
+    project_name: str = Field(
+        description="Название проекта",
+        max_length=100
+    )
+    project_description: str = Field(
+        description="Описание проекта",
+        max_length=1000,
+        default=""
+    )
+
 
 class TaskCreate(BaseModel):
     task_description: str = Field(
         description="Описание задачи",
         max_length=300
     )
-    assignee: str
+    assignee: str       # Если пользователя с таким именем не найдётся, функция создания должна выдать ошибку
     due_date: Optional[date] = Field(
         description="Крайний срок исполнения задачи. "
                     "Не допускаются даты, более ранние, "
@@ -29,6 +40,9 @@ class TaskCreate(BaseModel):
         default_factory=lambda: date.today() + timedelta(days=1)
     )
 
+
+class ProjectRead(ProjectCreate):
+    project_id: int
 
 class TaskRead(TaskCreate):
     task_id: int
@@ -63,10 +77,8 @@ class UserCrendentials(BaseModel):
             }
         })
 
-class Project(SQLModel, table=True):
+class Project(SQLModel, ProjectRead, table=True):
     project_id: int = SQLField(default=None, nullable=False, primary_key=True)
-    project_name: str
-    project_description: str | None
 
 
 class Task(SQLModel, TaskRead, table=True):
