@@ -15,11 +15,11 @@ def _empty_str_or_none(value: str | None) -> None:
 EmptyStrOrNone: TypeAlias = Annotated[None, BeforeValidator(_empty_str_or_none)]
 
 class ProjectCreate(BaseModel):
-    project_name: str = Field(
+    name: str = Field(
         description="Название проекта",
         max_length=100
     )
-    project_description: str = Field(
+    description: str = Field(
         description="Описание проекта",
         max_length=1000,
         default=""
@@ -27,7 +27,7 @@ class ProjectCreate(BaseModel):
 
 
 class TaskCreate(BaseModel):
-    task_description: str = Field(
+    description: str = Field(
         description="Описание задачи",
         max_length=300
     )
@@ -39,19 +39,23 @@ class TaskCreate(BaseModel):
         gt=date.today() - timedelta(days=1),
         default_factory=lambda: date.today() + timedelta(days=1)
     )
+    project: int | None = Field(
+        description="ID проекта, к которому относится задача",
+        default=None
+    )
 
 
 class ProjectRead(ProjectCreate):
-    project_id: int
+    id: int
 
 class TaskRead(TaskCreate):
-    task_id: int
+    id: int
     due_date: EmptyStrOrNone | date
 
 
 class User(SQLModel, table=True):
     __table_args__ = (UniqueConstraint("email"),)
-    user_id: int = SQLField(default=None, nullable=False, primary_key=True)
+    id: int = SQLField(default=None, nullable=False, primary_key=True)
     email: str = SQLField(nullable=True, unique_items=True)
     password: str | None
     name: str
@@ -78,19 +82,19 @@ class UserCrendentials(BaseModel):
         })
 
 class Project(SQLModel, ProjectRead, table=True):
-    project_id: int = SQLField(default=None, nullable=False, primary_key=True)
+    id: int = SQLField(default=None, nullable=False, primary_key=True)
 
 
 class Task(SQLModel, TaskRead, table=True):
-    task_id: int = SQLField(default=None, nullable=False, primary_key=True)
+    id: int = SQLField(default=None, nullable=False, primary_key=True)
     due_date: date
-    assignee: int = SQLField(foreign_key="user.user_id")
-    project: int = SQLField(default=None, nullable=True, foreign_key="project.project_id")
+    assignee: int = SQLField(foreign_key="user.id")
+    project: int = SQLField(default=None, nullable=True, foreign_key="project.id")
 
 
 class ProductivityLog(SQLModel, table=True):
-    log_id: int = SQLField(default=None, primary_key=True)
-    user_id: int = SQLField(foreign_key="user.user_id")
+    id: int = SQLField(default=None, primary_key=True)
+    user_id: int = SQLField(foreign_key="user.id")
     log_date: date = SQLField(default_factory=date.today)
     tasks_completed: int = SQLField(nullable=False)
     focus_score: float = SQLField(default=0.0)  # "AI"-оценка эффективности
