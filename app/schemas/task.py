@@ -6,13 +6,13 @@ from sqlalchemy import UniqueConstraint
 from sqlmodel import SQLModel, Field as SQLField
 
 
-def _empty_str_or_none(value: str | None) -> None:
-    if value is None or value == "":
-        return None
-    raise ValueError("Expected empty value")
+# def _empty_str_or_none(value: str | None) -> None:
+#     if value is None or value == "":
+#         return None
+#     raise ValueError("Expected empty value")
 
 
-EmptyStrOrNone: TypeAlias = Annotated[None, BeforeValidator(_empty_str_or_none)]
+# EmptyStrOrNone: TypeAlias = Annotated[None, BeforeValidator(_empty_str_or_none)]
 
 class ProjectCreate(BaseModel):
     name: str = Field(
@@ -32,12 +32,12 @@ class TaskCreate(BaseModel):
         max_length=300
     )
     assignee: str       # Если пользователя с таким именем не найдётся, функция создания должна выдать ошибку
-    due_date: Optional[date] = Field(
+    due_date: date | None = Field(
         description="Крайний срок исполнения задачи. "
                     "Не допускаются даты, более ранние, "
                     "чем сегодняшняя.",
         gt=date.today() - timedelta(days=1),
-        default_factory=lambda: date.today() + timedelta(days=1)
+        default=None
     )
     project: int | None = Field(
         description="ID проекта, к которому относится задача",
@@ -50,7 +50,7 @@ class ProjectRead(ProjectCreate):
 
 class TaskRead(TaskCreate):
     id: int
-    due_date: EmptyStrOrNone | date
+    # due_date: EmptyStrOrNone | date
 
 
 class User(SQLModel, table=True):
@@ -82,12 +82,18 @@ class UserCrendentials(BaseModel):
         })
 
 class Project(SQLModel, ProjectRead, table=True):
-    id: int = SQLField(default=None, nullable=False, primary_key=True)
+    id: int = SQLField(nullable=False, primary_key=True)
 
 
 class Task(SQLModel, TaskRead, table=True):
     id: int = SQLField(default=None, nullable=False, primary_key=True)
-    due_date: date
+    due_date: date | None = SQLField(
+        description="Крайний срок исполнения задачи. "
+                    "Не допускаются даты, более ранние, "
+                    "чем сегодняшняя.",
+        gt=date.today() - timedelta(days=1),
+        default=None
+    )
     assignee: int = SQLField(foreign_key="user.id")
     project: int = SQLField(default=None, nullable=True, foreign_key="project.id")
 

@@ -12,7 +12,8 @@ from datetime import timedelta
 
 router = APIRouter(prefix="/auth", tags=["Безопасность"])
 
-@router.post("/signup", status_code=status.HTTP_201_CREATED, response_model=int, summary = 'Добавить пользователя')
+@router.post("/signup", status_code=status.HTTP_201_CREATED, response_model=int, 
+             summary = 'Добавить пользователя')
 def create_user(
     user: schema_task.User,
     session: Session = Depends(get_session)
@@ -26,7 +27,7 @@ def create_user(
         session.add(new_user)
         session.commit()
         session.refresh(new_user)
-        return new_user.user_id
+        return new_user.id
     except IntegrityError as e:
         assert isinstance(e.orig, UniqueViolation)
         raise HTTPException(

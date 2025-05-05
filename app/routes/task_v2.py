@@ -13,9 +13,6 @@ def create_project(
     project: Annotated[schema_task.ProjectCreate, request_examples.example_create_project],
     session: Session = Depends(get_session)
 ):
-    """
-    Добавить проект.
-    """
     new_project = schema_task.Project(
         name=project.name,
         description=project.description
@@ -26,15 +23,25 @@ def create_project(
     return new_project
 
 
+@router.get("/projects", status_code=status.HTTP_200_OK, response_model=List[schema_task.ProjectRead],
+            summary='Получить список всех проектов.')
+def read_projects(session: Session = Depends(get_session)):
+
+    projects = session.exec(select(schema_task.Project)).all()
+    if not projects:
+        raise HTTPException(
+            status_code=status.HTTP_204_NO_CONTENT,
+            detail="No projects found."
+        )
+    return projects
+
+
 @router.post("/new_task", status_code=status.HTTP_201_CREATED, response_model=schema_task.TaskRead,
              summary = 'Добавить задачу')
 def create_task(
     task: Annotated[schema_task.TaskCreate, request_examples.example_create_task],
     session: Session = Depends(get_session)
 ):
-    """
-    Добавить задачу.
-    """
     statement = select(schema_task.User).where(schema_task.User.name == task.assignee)
     existing_user = session.exec(statement).first()
 
@@ -70,7 +77,7 @@ def read_tasks_by_project(project_id: int, session: Session = Depends(get_sessio
 
 
 @router.get("/tasks/no_project", status_code=status.HTTP_200_OK, response_model=List[schema_task.TaskRead],
-            description='Получить все задачи, которые не связаны с каким-либо проектом.')
+            summary='Получить все задачи, которые не связаны с каким-либо проектом.')
 def read_tasks_without_project(session: Session = Depends(get_session)):
 
     tasks = session.exec(select(schema_task.Task).where(schema_task.Task.project == None)).all()
