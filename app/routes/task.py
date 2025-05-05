@@ -1,11 +1,16 @@
 from fastapi import APIRouter, status, Depends, HTTPException
 from sqlmodel import Session, select
-from app.db import get_session
+from app.db import get_session, get_async_session
 from ..schemas import task as schema_task
 from typing import Annotated, List
 from ..api_docs import request_examples
+from ..auth.auth_handler import get_current_user
+from ..logging.logs_handler import get_or_create_log, calculate_focus_score
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.schemas.task import User, Task, ProductivityLog
 
-router = APIRouter(prefix="/v2/tasks", tags=["Управление задачами в БД"])
+
+router = APIRouter(prefix="/tasks", tags=["Управление задачами в БД"])
 
 @router.post("/new_project", status_code=status.HTTP_201_CREATED, response_model=schema_task.ProjectRead,
              summary='Добавить проект')
@@ -23,10 +28,9 @@ def create_project(
     return new_project
 
 
-@router.get("/projects", status_code=status.HTTP_200_OK, response_model=List[schema_task.ProjectRead],
-            summary='Получить список всех проектов.')
-def read_projects(session: Session = Depends(get_session)):
-
+@router.get("/all_projects", status_code=status.HTTP_200_OK, response_model=List[schema_task.ProjectRead],
+            summary='Список всех проектов')
+def get_all_projects(session: Session = Depends(get_session)):
     projects = session.exec(select(schema_task.Project)).all()
     if not projects:
         raise HTTPException(
@@ -76,7 +80,7 @@ def read_tasks_by_project(project_id: int, session: Session = Depends(get_sessio
     return tasks
 
 
-@router.get("/tasks/no_project", status_code=status.HTTP_200_OK, response_model=List[schema_task.TaskRead],
+@router.get("/no_project", status_code=status.HTTP_200_OK, response_model=List[schema_task.TaskRead],
             summary='Получить все задачи, которые не связаны с каким-либо проектом')
 def read_tasks_without_project(session: Session = Depends(get_session)):
 
@@ -123,6 +127,37 @@ def update_task_by_id(task_id: int, data_for_update: dict, session: Session = De
     session.commit()
     session.refresh(task)
     return task
+    
+
+@router.post("/{task_id}/complete", status_code=status.HTTP_200_OK,
+             summary="Завершить задачу")
+async def complete_task(
+    task_id: int, 
+    session: AsyncSession = Depends(get_async_session),
+    current_user: User = Depends(get_current_user)
+):
+    """Асинхронная функция"""
+    # 1. Помечаем задачу выполненной (CRUD)
+    task = await session.get(Task, task_id)
+    if not task:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Task with ID {task_id} not found."
+        )
+    task.is_completed = True
+    
+    # 2. Обновляем лог продуктивности (Автоматика)
+    log = await get_or_create_log(session, current_user.id)
+    log.tasks_completed += 1
+    log.focus_score = await calculate_focus_score(log)  # AI-магия
+
+    await session.commit()
+
+    return {
+        "message": f"Task {task_id} marked as completed.",
+        "focus_score": log.focus_score,
+        "tasks_completed": log.tasks_completed
+    }
 
 
 @router.delete("/{task_id}", status_code=status.HTTP_200_OK, response_model=dict,

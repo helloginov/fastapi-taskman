@@ -96,12 +96,13 @@ class Task(SQLModel, TaskRead, table=True):
     )
     assignee: int = SQLField(foreign_key="user.id")
     project: int = SQLField(default=None, nullable=True, foreign_key="project.id")
+    is_completed: bool = SQLField(default=False)
 
 
 class ProductivityLog(SQLModel, table=True):
     id: int = SQLField(default=None, primary_key=True)
     user_id: int = SQLField(foreign_key="user.id")
     log_date: date = SQLField(default_factory=date.today)
-    tasks_completed: int = SQLField(nullable=False)
+    tasks_completed: int = SQLField(nullable=False, default=0)  # Количество выполненных задач
     focus_score: float = SQLField(default=0.0)  # "AI"-оценка эффективности
     last_activity: datetime = SQLField(default_factory=datetime.now)

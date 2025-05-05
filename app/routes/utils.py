@@ -24,7 +24,7 @@ def test_database():
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
-@router.get("/test-auth")
+@router.get("/test-auth", summary="Посмотреть токен")
 def show_access_token(token: str = Depends(oauth2_scheme)):
     return {"token": token}
 
@@ -34,4 +34,4 @@ def show_access_token(token: str = Depends(oauth2_scheme)):
 def read_users_me(
     current_user: Annotated[User, Depends(get_current_user)]
 ):
-    return current_user.user_id
+    return current_user.id
