@@ -43,11 +43,6 @@ class TaskCreate(BaseModel):
         description="ID проекта, к которому относится задача",
         default=None
     )
-    complexity: int = Field(
-        description="Сложность задачи от 1 до 5",
-        ge=1, le=5,
-        default=1
-    )
 
 
 class ProjectRead(ProjectCreate):
@@ -55,10 +50,7 @@ class ProjectRead(ProjectCreate):
 
 class TaskRead(TaskCreate):
     id: int
-    is_completed: bool = Field(
-        description="Статус выполнения задачи",
-        default=False
-    )
+    # due_date: EmptyStrOrNone | date
 
 
 class User(SQLModel, table=True):
@@ -104,7 +96,6 @@ class Task(SQLModel, TaskRead, table=True):
     )
     assignee: int = SQLField(foreign_key="user.id")
     project: int = SQLField(default=None, nullable=True, foreign_key="project.id")
-    complexity: int = SQLField(default=1)  # Сложность задачи от 1 до 10
     is_completed: bool = SQLField(default=False)
 
 

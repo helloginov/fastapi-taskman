@@ -161,7 +161,7 @@ async def complete_task(
 
 
 @router.delete("/{task_id}", status_code=status.HTTP_200_OK, response_model=dict,
-              summary='Удалить задачу по ID')
+              summary='Удалить задачу по ID.')
 def delete_task_by_id(task_id: int, session: Session = Depends(get_session)):
 
     statement = select(schema_task.Task).where(schema_task.Task.id == task_id)

@@ -27,6 +27,8 @@ app = FastAPI(
     }
 )
 
+# app.include_router(task.router)
 app.include_router(task.router)
 app.include_router(utils.router)
+app.include_router(async_routes.router)
 app.include_router(auth.router)
