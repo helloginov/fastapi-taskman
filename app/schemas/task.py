@@ -1,108 +1,140 @@
-from datetime import date, timedelta, datetime
-from pydantic import (BaseModel, Field, BeforeValidator, EmailStr)
+from datetime import date, datetime, timedelta
+from typing import Optional, Annotated
+
+from pydantic import BaseModel, EmailStr, Field
 from pydantic_settings import SettingsConfigDict
-from typing import Optional, Annotated, TypeAlias
 from sqlalchemy import UniqueConstraint
 from sqlmodel import SQLModel, Field as SQLField
 
 
-# def _empty_str_or_none(value: str | None) -> None:
-#     if value is None or value == "":
-#         return None
-#     raise ValueError("Expected empty value")
-
-
-# EmptyStrOrNone: TypeAlias = Annotated[None, BeforeValidator(_empty_str_or_none)]
-
 class ProjectCreate(BaseModel):
+    """
+    Schema for creating a new project.
+    """
     name: str = Field(
         description="Название проекта",
-        max_length=100
+        max_length=100,
     )
     description: str = Field(
         description="Описание проекта",
         max_length=1000,
-        default=""
+        default="",
     )
 
 
 class TaskCreate(BaseModel):
+    """
+    Schema for creating a new task.
+    """
     description: str = Field(
         description="Описание задачи",
-        max_length=300
+        max_length=300,
     )
-    assignee: str       # Если пользователя с таким именем не найдётся, функция создания должна выдать ошибку
-    due_date: date | None = Field(
-        description="Крайний срок исполнения задачи. "
-                    "Не допускаются даты, более ранние, "
-                    "чем сегодняшняя.",
+    assignee: str  # If the user with this name is not found, an error should be raised.
+    due_date: Optional[date] = Field(
+        description=(
+            "Крайний срок исполнения задачи. "
+            "Не допускаются даты, более ранние, чем сегодняшняя."
+        ),
         gt=date.today() - timedelta(days=1),
-        default=None
+        default=None,
     )
-    project: int | None = Field(
+    project: Optional[int] = Field(
         description="ID проекта, к которому относится задача",
-        default=None
+        default=None,
     )
 
 
 class ProjectRead(ProjectCreate):
+    """
+    Schema for reading project details.
+    """
     id: int
 
+
 class TaskRead(TaskCreate):
+    """
+    Schema for reading task details.
+    """
     id: int
-    # due_date: EmptyStrOrNone | date
 
 
 class User(SQLModel, table=True):
+    """
+    User model for the database.
+    """
     __table_args__ = (UniqueConstraint("email"),)
     id: int = SQLField(default=None, nullable=False, primary_key=True)
     email: str = SQLField(nullable=True, unique_items=True)
-    password: str | None
+    password: Optional[str]
     name: str
 
     model_config = SettingsConfigDict(
-        json_schema_extra = {
+        json_schema_extra={
             "example": {
                 "name": "Иван Иванов",
                 "email": "user@example.com",
-                "password": "qwerty"
+                "password": "qwerty",
             }
-        })
+        }
+    )
+
 
 class UserCrendentials(BaseModel):
+    """
+    Schema for user credentials.
+    """
     email: EmailStr
     password: str
 
     model_config = SettingsConfigDict(
-        json_schema_extra = {
+        json_schema_extra={
             "example": {
                 "email": "user@example.com",
-                "password": "querty"
+                "password": "qwerty",
             }
-        })
+        }
+    )
+
 
 class Project(SQLModel, ProjectRead, table=True):
+    """
+    Project model for the database.
+    """
     id: int = SQLField(nullable=False, primary_key=True)
 
 
 class Task(SQLModel, TaskRead, table=True):
+    """
+    Task model for the database.
+    """
     id: int = SQLField(default=None, nullable=False, primary_key=True)
-    due_date: date | None = SQLField(
-        description="Крайний срок исполнения задачи. "
-                    "Не допускаются даты, более ранние, "
-                    "чем сегодняшняя.",
+    due_date: Optional[date] = SQLField(
+        description=(
+            "Крайний срок исполнения задачи. "
+            "Не допускаются даты, более ранние, чем сегодняшняя."
+        ),
         gt=date.today() - timedelta(days=1),
-        default=None
+        default=None,
     )
     assignee: int = SQLField(foreign_key="user.id")
-    project: int = SQLField(default=None, nullable=True, foreign_key="project.id")
+    project: Optional[int] = SQLField(
+        default=None, nullable=True, foreign_key="project.id"
+    )
     is_completed: bool = SQLField(default=False)
 
 
 class ProductivityLog(SQLModel, table=True):
+    """
+    Productivity log model for the database.
+    """
     id: int = SQLField(default=None, primary_key=True)
     user_id: int = SQLField(foreign_key="user.id")
     log_date: date = SQLField(default_factory=date.today)
-    tasks_completed: int = SQLField(nullable=False, default=0)  # Количество выполненных задач
-    focus_score: float = SQLField(default=0.0)  # "AI"-оценка эффективности
+    tasks_completed: int = SQLField(
+        nullable=False, default=0
+    )  # Number of completed tasks
+    focus_score: float = SQLField(
+        default=0.0
+    )  # "AI"-based efficiency score
     last_activity: datetime = SQLField(default_factory=datetime.now)

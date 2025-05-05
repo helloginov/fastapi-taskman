@@ -1,59 +1,73 @@
 import asyncio
 import threading
 import time
-from sqlalchemy.sql import text
+from datetime import date, datetime
+from typing import List
+
 import httpx
-from fastapi import APIRouter, status, Depends, HTTPException, Response
-from sqlmodel import select
+import shortuuid
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql import text
+from sqlmodel import select
+
 from app.db import get_async_session
 from ..schemas import task as schema_task
-from typing import List
-from datetime import date, datetime
-import shortuuid
 
 router = APIRouter(prefix="/v2/async", tags=["Асинхронные операции"])
 
 
-@router.get("/tasks", status_code=status.HTTP_200_OK,
-            response_model=List[schema_task.TaskRead])
+@router.get(
+    "/tasks",
+    status_code=status.HTTP_200_OK,
+    response_model=List[schema_task.TaskRead],
+)
 async def read_tasks_async(session: AsyncSession = Depends(get_async_session)):
+    """
+    Fetch all tasks asynchronously.
+    """
     result = await session.execute(select(schema_task.Task))
     tasks = result.scalars().all()
-    if tasks is None or len(tasks) == 0:
+    if not tasks:
         raise HTTPException(
             status_code=status.HTTP_204_NO_CONTENT,
-            detail=f"The task list is empty."
+            detail="The task list is empty.",
         )
     return tasks
 
 
 @router.get("/tasks-for-day", status_code=status.HTTP_200_OK)
-async def read_tasks_for_day(response: Response,
-                             session: AsyncSession = Depends(get_async_session),
-                             due_date: date = date.today()):
+async def read_tasks_for_day(
+    response: Response,
+    session: AsyncSession = Depends(get_async_session),
+    due_date: date = date.today(),
+):
+    """
+    Fetch tasks for a specific day and check if it's a day off.
+    """
     start = time.time()
+
     async def query_db(due_date_param):
-        statement = (select(schema_task.Task)
-                     .where(schema_task.Task.due_date == due_date_param))
+        statement = select(schema_task.Task).where(
+            schema_task.Task.due_date == due_date_param
+        )
         result = await session.execute(statement)
         return result.scalars().all()
 
-
-    http_client = httpx.AsyncClient(timeout=httpx.Timeout(10.0, read=None))
-    res = await asyncio.gather(
-        query_db(due_date),
-        http_client.get(f"https://isdayoff.ru/{due_date}"),
-        #session.execute(text("SELECT pg_sleep(5)")),
-        #http_client.get("https://httpbin.org/delay/10"),
-    )
+    async with httpx.AsyncClient(timeout=httpx.Timeout(10.0, read=None)) as http_client:
+        res = await asyncio.gather(
+            query_db(due_date),
+            http_client.get(f"https://isdayoff.ru/{due_date}"),
+        )
 
     elapsed_seconds = time.time() - start
-    output = [{
-        "due_date": due_date,
-        "is_day_off": True if res[1].text == "1" else False,
-        "tasks": res[0]
-    }]
+    output = [
+        {
+            "due_date": due_date,
+            "is_day_off": res[1].text == "1",
+            "tasks": res[0],
+        }
+    ]
 
     response.headers["X-Completed-In"] = f"{elapsed_seconds:.3f} seconds"
     return output
@@ -63,6 +77,9 @@ results = {}
 
 
 async def async_job(job_id: str):
+    """
+    Simulate a long-running asynchronous job.
+    """
     start = datetime.now().strftime("%H:%M:%S")
     results[job_id] = "pending"
     await asyncio.sleep(20)
@@ -72,26 +89,33 @@ async def async_job(job_id: str):
 
 @router.post("/start-job", status_code=status.HTTP_202_ACCEPTED)
 async def start_job():
+    """
+    Start a new asynchronous job.
+    """
     job_id = shortuuid.uuid()
 
     loop = asyncio.new_event_loop()
-    threading.Thread(target=lambda: loop.run_until_complete(async_job(job_id))).start()
+    threading.Thread(
+        target=lambda: loop.run_until_complete(async_job(job_id))
+    ).start()
 
     return {"message": "Job started", "job_id": job_id}
 
 
 @router.get("/get-job-result/{job_id}", status_code=status.HTTP_200_OK)
 async def get_job_result(job_id: str):
+    """
+    Retrieve the result of a specific job.
+    """
     result = results.get(job_id)
     if result is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Job {job_id} does not exist"
+            detail=f"Job {job_id} does not exist",
         )
-    elif result == "pending":
+    if result == "pending":
         raise HTTPException(
             status_code=status.HTTP_202_ACCEPTED,
-            detail=f"Job {job_id} is still running"
+            detail=f"Job {job_id} is still running",
         )
-    else:
-        return {"result": result}
+    return {"result": result}

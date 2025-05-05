@@ -1,5 +1,7 @@
+"""Request examples for FastAPI API documentation."""
+
+from datetime import date, timedelta
 from fastapi import Body
-from datetime import datetime, timedelta, date
 
 example_create_project = Body(
     openapi_examples={
@@ -8,61 +10,65 @@ example_create_project = Body(
             "description": "Типовой запрос для создания проекта",
             "value": {
                 "name": "Презентация",
-                "description": "Подготовить презентацию для доклада на конференцию МФТИ"
-            }
+                "description": (
+                    "Подготовить презентацию для доклада на конференцию МФТИ"
+                ),
+            },
         },
         "empty_description": {
             "summary": "Запрос без описания",
-            "description": "Запрос для создания проекта без указания "
-                           "описания. В поле `description` будет "
-                           "автоматически подставлено значение `None`",
+            "description": (
+                "Запрос для создания проекта без указания описания. "
+                "В поле `description` будет автоматически подставлено значение `None`"
+            ),
             "value": {
-                "name": "Проект без описания"
+                "name": "Проект без описания",
             },
         },
         "invalid": {
             "summary": "Некорректные данные, возвращается ошибка 422",
             "value": {
                 "name": 123,
-                "description": 456
+                "description": 456,
             },
         },
     }
 )
 
-
 example_create_task = Body(
     openapi_examples={
-        "normal":   {
+        "normal": {
             "summary": "Типовой запрос",
             "description": "Типовой запрос для создания задачи",
             "value": {
                 "description": "Подготовить план",
                 "assignee": "Иван Иванов",
                 "due_date": (date.today() + timedelta(days=7)).strftime("%Y-%m-%d"),
-                "project": 1
-            }
+                "project": 1,
+            },
         },
         "empty_date": {
             "summary": "Запрос без указания срока",
-            "description": "Запрос для создания задачи без указания "
-                           "крайнего срока исполнения. В поле `due_date` "
-                           "будет автоматически подставлен завтрашний день",
+            "description": (
+                "Запрос для создания задачи без указания крайнего срока исполнения. "
+                "В поле `due_date` будет автоматически подставлен завтрашний день"
+            ),
             "value": {
                 "description": "Отрепетировать выступление",
                 "assignee": "Иван Иванов",
-                "project": 1
+                "project": 1,
             },
         },
         "empty_project": {
             "summary": "Запрос без указания проекта",
-            "description": "Запрос для создания задачи без указания "
-                           "ID проекта. В поле `project` будет "
-                           "автоматически подставлено значение `None`",
+            "description": (
+                "Запрос для создания задачи без указания ID проекта. "
+                "В поле `project` будет автоматически подставлено значение `None`"
+            ),
             "value": {
                 "description": "Пообедать",
                 "assignee": "Иван Иванов",
-                "due_date": (date.today() + timedelta(days=1)).strftime("%Y-%m-%d")
+                "due_date": (date.today() + timedelta(days=1)).strftime("%Y-%m-%d"),
             },
         },
         "invalid_data": {
@@ -70,16 +76,18 @@ example_create_task = Body(
             "value": {
                 "description": "Подготовить презентацию",
                 "assignee": "Василий",
-                "due_date": "сегодня"
+                "due_date": "сегодня",
             },
         },
         "invalid_assignee": {
             "summary": "Некорректный исполнитель, возвращается ошибка 422",
-            "description": "Запрос для создания задачи с несуществующим исполнителем.",
+            "description": (
+                "Запрос для создания задачи с несуществующим исполнителем."
+            ),
             "value": {
                 "description": "Подготовить план",
                 "assignee": "Иван",
-                "due_date": (date.today() + timedelta(days=1)).strftime("%Y-%m-%d")
+                "due_date": (date.today() + timedelta(days=1)).strftime("%Y-%m-%d"),
             },
         },
     }

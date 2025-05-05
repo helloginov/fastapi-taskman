@@ -1,28 +1,34 @@
 from datetime import datetime, timedelta, timezone
+from typing import Annotated
+
 import jwt
 from jwt.exceptions import InvalidTokenError
-from app.config import settings
-from typing import Annotated
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
 from sqlmodel import Session, select
+
+from app.config import settings
 from app.db import get_session
 from app.schemas import task as schema_task
+
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 
 def get_password_hash(password):
+    """Hash the given password."""
     return pwd_context.hash(password)
 
 
 def verify_password(plain_password, hashed_password):
+    """Verify the given password against the hashed password."""
     return pwd_context.verify(plain_password, hashed_password)
 
 
 def create_access_token(data: dict, expires_delta: timedelta | None = None):
+    """Create a JWT access token."""
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
@@ -34,15 +40,16 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     encoded_jwt = jwt.encode(
         to_encode,
         settings.secret_key,
-        algorithm=settings.algo
+        algorithm=settings.algo,
     )
     return encoded_jwt
 
 
 def get_current_user(
     token: Annotated[str, Depends(oauth2_scheme)],
-    db_session: Session = Depends(get_session)
+    db_session: Session = Depends(get_session),
 ):
+    """Retrieve the current user based on the provided token."""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -57,7 +64,7 @@ def get_current_user(
         raise credentials_exception
 
     statement = select(schema_task.User).where(
-        schema_task.User.email == username
+        schema_task.User.email == username,
     )
 
     user = db_session.exec(statement).first()
