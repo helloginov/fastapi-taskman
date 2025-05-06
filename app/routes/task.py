@@ -80,7 +80,7 @@ def create_task(
 
     if not existing_user:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail=f"{task.assignee} not found",
         )
     new_task = schema_task.Task(

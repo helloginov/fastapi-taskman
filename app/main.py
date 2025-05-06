@@ -17,7 +17,7 @@ app = FastAPI(
                 "фреймворке FastAPI.",
     version="0.0.2",
     contact={
-        "name": "Цифровая кафедра МФТИ\nСтудент: Логинов Артём Александрович\nГруппа: М07-404",
+        "name": "Логинов Артём Александрович",
         "url": "https://github.com/helloginov/fastapi-taskman",
         "email": "loginov.artem@phystech.edu",
     },
