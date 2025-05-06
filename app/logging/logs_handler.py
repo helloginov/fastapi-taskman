@@ -27,19 +27,29 @@ async def get_or_create_log(session: AsyncSession, user_id: int) -> Productivity
         session.add(new_log)
         await session.commit()
         return new_log
+    
+    if log.last_activity.month != datetime.now().month:
+        log.tasks_completed_month = 0
+        log.mean_complexity_month = 0.0
+    log.last_activity = datetime.now()
+
     return log
 
 
-async def calculate_focus_score(log: ProductivityLog) -> float:
+async def update_mean_complexity(log: ProductivityLog, complexity: int) -> float:
     """
     Calculate the focus score based on simple rules.
 
     Args:
         log (ProductivityLog): The productivity log.
+        complexity (int): The complexity of the task.
 
     Returns:
         float: The calculated focus score.
     """
-    base_score = log.tasks_completed * 0.5
-    time_factor = 1.2 if datetime.now().hour in [10, 14, 16] else 0.8  # Biological clock
-    return min(base_score * time_factor, 100.0)
+    log.tasks_completed += 1
+    log.tasks_completed_month += 1
+    log.mean_complexity_month = (
+        log.mean_complexity_month * (log.tasks_completed_month - 1) + complexity
+    ) / log.tasks_completed_month
+    return log

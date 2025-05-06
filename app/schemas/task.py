@@ -43,6 +43,12 @@ class TaskCreate(BaseModel):
         description="ID проекта, к которому относится задача",
         default=None,
     )
+    complexity: int = Field(
+        description="Сложность задачи от 1 до 5",
+        ge=1,
+        le=5,
+        default=1,
+    )
 
 
 class ProjectRead(ProjectCreate):
@@ -122,6 +128,12 @@ class Task(SQLModel, TaskRead, table=True):
         default=None, nullable=True, foreign_key="project.id"
     )
     is_completed: bool = SQLField(default=False)
+    complexity: int = SQLField(
+        description="Сложность задачи от 1 до 5",
+        ge=1,
+        le=5,
+        default=1,
+    )
 
 
 class ProductivityLog(SQLModel, table=True):
@@ -133,8 +145,13 @@ class ProductivityLog(SQLModel, table=True):
     log_date: date = SQLField(default_factory=date.today)
     tasks_completed: int = SQLField(
         nullable=False, default=0
-    )  # Number of completed tasks
-    focus_score: float = SQLField(
-        default=0.0
-    )  # "AI"-based efficiency score
-    last_activity: datetime = SQLField(default_factory=datetime.now)
+    ) 
+    tasks_completed_month: int = SQLField(
+        nullable=False, default=0
+    )  
+    mean_complexity_month: float = SQLField(
+        nullable=False, default=0.0
+    ) 
+    last_activity: datetime = SQLField(
+        default_factory=lambda: datetime.now()
+    )

@@ -12,7 +12,7 @@ example_create_project = Body(
                 "name": "Презентация",
                 "description": (
                     "Подготовить презентацию для доклада на конференцию МФТИ"
-                ),
+                )
             },
         },
         "empty_description": {
@@ -45,6 +45,7 @@ example_create_task = Body(
                 "assignee": "Иван Иванов",
                 "due_date": (date.today() + timedelta(days=7)).strftime("%Y-%m-%d"),
                 "project": 1,
+                "complexity": 3,
             },
         },
         "empty_date": {
@@ -57,6 +58,7 @@ example_create_task = Body(
                 "description": "Отрепетировать выступление",
                 "assignee": "Иван Иванов",
                 "project": 1,
+                "complexity": 2,
             },
         },
         "empty_project": {
@@ -69,6 +71,7 @@ example_create_task = Body(
                 "description": "Пообедать",
                 "assignee": "Иван Иванов",
                 "due_date": (date.today() + timedelta(days=1)).strftime("%Y-%m-%d"),
+                "complexity": 1,
             },
         },
         "invalid_data": {

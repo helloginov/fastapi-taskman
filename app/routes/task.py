@@ -2,12 +2,13 @@ from typing import Annotated, List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import Session, select
+from datetime import datetime
 
 from app.db import get_async_session, get_session
 from app.schemas.task import ProductivityLog, Task, User
 from ..api_docs import request_examples
 from ..auth.auth_handler import get_current_user
-from ..logging.logs_handler import calculate_focus_score, get_or_create_log
+from ..logging.logs_handler import update_mean_complexity, get_or_create_log
 from ..schemas import task as schema_task
 
 router = APIRouter(prefix="/tasks", tags=["Управление задачами в БД"])
@@ -87,6 +88,7 @@ def create_task(
         assignee=existing_user.id,
         due_date=task.due_date,
         project=task.project,
+        complexity=task.complexity,
     )
     session.add(new_task)
     session.commit()
@@ -219,19 +221,48 @@ async def complete_task(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Task with ID {task_id} not found.",
         )
+    if task.is_completed:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Task {task_id} is already completed.",
+        )
     task.is_completed = True
 
     log = await get_or_create_log(session, current_user.id)
-    log.tasks_completed += 1
-    log.focus_score = await calculate_focus_score(log)
+    log = await update_mean_complexity(log, task.complexity)
 
     await session.commit()
 
+    month = datetime.now().strftime("%B")
     return {
         "message": f"Task {task_id} marked as completed.",
-        "focus_score": log.focus_score,
+        f"mean_complexity_{month}": round(log.mean_complexity_month, 2),
+        f"tasks_completed_{month}": log.tasks_completed_month,
         "tasks_completed": log.tasks_completed,
     }
+
+
+@router.get(
+    "/user/{user_id}/productivity_log",
+    status_code=status.HTTP_200_OK,
+    response_model=ProductivityLog,
+    summary="Получить лог продуктивности пользователя",
+)
+async def get_productivity_log(
+    user_id: int,
+    session: AsyncSession = Depends(get_async_session)
+):
+    """
+    Retrieve the productivity log for a specific user.
+    """
+    log = await session.get(ProductivityLog, user_id)
+    if not log:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Productivity log for user ID {user_id} not found.",
+        )
+
+    return log
 
 
 @router.delete(
